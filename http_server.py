@@ -1,28 +1,47 @@
-from http.server import BaseHTTPRequestHandler, HTTPServer
-import time
-
-hostName = "localhost"
-serverPort = 8080
+gpio = {}
+gpio_num = None
+action = None
 
 class MyServer(BaseHTTPRequestHandler):
     def do_GET(self):
-        self.send_response(200)
-        self.send_header("Content-type", "json/html")
-        self.end_headers()
-        self.wfile.write(bytes("<html><head><title>https://pythonbasics.org</title></head>", "utf-8"))
-        self.wfile.write(bytes("<p>Request: %s</p>" % self.path, "utf-8"))
-        self.wfile.write(bytes("<body>", "utf-8"))
-        self.wfile.write(bytes("<p>This is an example web server.</p>", "utf-8"))
-        self.wfile.write(bytes("</body></html>", "utf-8"))
+            gpio_num = self.path.split("/")[1].split("gpio")[1]
+            action = self.path.split("/")[2]
+            if not gpio_num in gpio:
+              gpio[gpio_num] = 0 
+            if action == "on":
+                gpio_state[gpio_num] = 1
+                self.send_response(200)
+                self.send_header("Content-type", "text/plain")
+                self.end_headers()
+                self.wfile.write(bytes("OK", "utf-8"))
+            elif action == "off":
+                gpio[gpio_num] = 0
+                self.send_response(200)
+                self.send_header("Content-type", "text/plain")
+                self.end_headers()
+                self.wfile.write(bytes("OK", "utf-8"))
+            elif action == "status":
+                self.send_response(200)
+                self.send_header("Content-type", "application/json")
+                self.end_headers()
+                data = {"status": gpio_state[gpio_num]}
+                self.wfile.write(bytes(json.dumps(data), "utf-8")) 
+            else:
+                self.send_response(400)
+                self.send_header("Content-type", "text/plain")
+                self.end_headers()
+                self.wfile.write(bytes("Invalid action", "utf-8"))
+       else:
+           self.send_response(404)
+           self.send_header("Content-type", "text/plain")
+           self.end_headers()
+           self.wfile.write(bytes("Not Found", "utf-8"))
+         
+def run_server():
+    server_address = ('127.0.0.1', 8000)
+    httpd = HTTPServer(server_address, MyServer)
+    print("Starting server on port 8000...")
+    httpd.serve_forever()
 
-if __name__ == "__main__":        
-    webServer = HTTPServer((hostName, serverPort), MyServer)
-    print("Server started http://%s:%s" % (hostName, serverPort))
+run_server()
 
-    try:
-        webServer.serve_forever()
-    except KeyboardInterrupt:
-        pass
-
-    webServer.server_close()
-    print("Server stopped.")
